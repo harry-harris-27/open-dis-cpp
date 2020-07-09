@@ -61,6 +61,7 @@ protected:
     void setSamples(short pX); 
 
     std::vector<char>& getData();
+    const std::vector<char>& getData() const;
 
 virtual int getMarshalledSize() const;
 

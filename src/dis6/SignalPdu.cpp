@@ -73,6 +73,11 @@ std::vector<char>& SignalPdu::getData()
     return _data;
 }
 
+const std::vector<char>& SignalPdu::getData() const
+{
+    return _data;
+}
+
 void SignalPdu::marshal(DataStream& dataStream) const
 {
     RadioCommunicationsFamilyPdu::marshal(dataStream); // Marshal information in superclass first
