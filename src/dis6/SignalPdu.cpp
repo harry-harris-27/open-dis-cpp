@@ -48,9 +48,14 @@ void SignalPdu::setSampleRate(unsigned int pX)
     _sampleRate = pX;
 }
 
-short SignalPdu::getDataLength() const
+unsigned short SignalPdu::getDataLength() const
 {
-   return _data.size();
+    return _dataLength;
+}
+
+void SignalPdu::setDataLength(unsigned short pX)
+{
+    _dataLength = pX;
 }
 
 short SignalPdu::getSamples() const
@@ -63,19 +68,9 @@ void SignalPdu::setSamples(short pX)
     _samples = pX;
 }
 
-std::vector<OneByteChunk>& SignalPdu::getData() 
+std::vector<char>& SignalPdu::getData()
 {
     return _data;
-}
-
-const std::vector<OneByteChunk>& SignalPdu::getData() const
-{
-    return _data;
-}
-
-void SignalPdu::setData(const std::vector<OneByteChunk>& pX)
-{
-     _data = pX;
 }
 
 void SignalPdu::marshal(DataStream& dataStream) const
@@ -84,15 +79,19 @@ void SignalPdu::marshal(DataStream& dataStream) const
     dataStream << _encodingScheme;
     dataStream << _tdlType;
     dataStream << _sampleRate;
-    dataStream << ( short )_data.size();
+    dataStream << _dataLength;
     dataStream << _samples;
 
-     for(size_t idx = 0; idx < _data.size(); idx++)
-     {
-        OneByteChunk x = _data[idx];
-        x.marshal(dataStream);
-     }
+    for (unsigned short i = 0; i < _dataLength / 8; i++)
+    {
+        dataStream << _data[i];
+    }
 
+    int bitsRemaining = _dataLength % 8;
+    if (bitsRemaining > 0)
+    {
+        dataStream << _data[(_dataLength / 8) + 1];
+    }
 }
 
 void SignalPdu::unmarshal(DataStream& dataStream)
@@ -104,13 +103,13 @@ void SignalPdu::unmarshal(DataStream& dataStream)
     dataStream >> _dataLength;
     dataStream >> _samples;
 
-     _data.clear();
-     for(unsigned short idx = 0; idx < _dataLength; idx++)
-     {
-        OneByteChunk x;
-        x.unmarshal(dataStream);
-        _data.push_back(x);
-     }
+    // Resize the vectyor to fit all the data
+    _data.resize((_dataLength / 8) + (_dataLength % 8 == 0 ? 0 : 1));
+    for (unsigned short idx = 0; idx < _data.size(); idx++)
+    {
+        dataStream >> _data[idx];
+    }
+
 }
 
 
@@ -145,11 +144,7 @@ int SignalPdu::getMarshalledSize() const
    marshalSize = marshalSize + 2;  // _dataLength
    marshalSize = marshalSize + 2;  // _samples
 
-   for(unsigned long long idx=0; idx < _data.size(); idx++)
-   {
-        OneByteChunk listElement = _data[idx];
-        marshalSize = marshalSize + listElement.getMarshalledSize();
-    }
+   marshalSize = marshalSize + (_dataLength / 8) + (_dataLength % 8 == 0 ? 0 : 1);
 
     return marshalSize;
 }
